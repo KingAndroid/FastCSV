@@ -216,7 +216,7 @@ public final class CsvWriter {
                 StandardOpenOption.CREATE,
                 oldIgnore ? StandardOpenOption.TRUNCATE_EXISTING
                         : StandardOpenOption.APPEND,
-                
+
         };
         return new OutputStreamWriter(
                 Files.newOutputStream(path, options),

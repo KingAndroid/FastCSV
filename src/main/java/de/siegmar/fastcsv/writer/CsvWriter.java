@@ -17,13 +17,11 @@
 package de.siegmar.fastcsv.writer;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.Objects;
 
@@ -90,51 +88,8 @@ public final class CsvWriter {
      * @throws IOException          if a write error occurs
      * @throws NullPointerException if file, charset or data is null
      */
-    public void write(
-            final File file,
-            final Charset charset,
-            final Collection<String[]> data,
-            final boolean oldIgnore
-    ) throws IOException {
-        write(
-                Objects.requireNonNull(file, "file must not be null").toPath(),
-                Objects.requireNonNull(charset, "charset must not be null"),
-                data, oldIgnore
-        );
-    }
-
-    /**
-     * Writes all specified data to the path.
-     *
-     * @param path where the data should be written to.
-     * @param data lines/columns to be written.
-     * @throws IOException          if a write error occurs
-     * @throws NullPointerException if path, charset or data is null
-     */
-    public void write(
-            final Path path,
-            final Charset charset,
-            final Collection<String[]> data,
-            final boolean oldIgnore
-    ) throws IOException {
-        Objects.requireNonNull(path, "path must not be null");
-        Objects.requireNonNull(charset, "charset must not be null");
-        try (final Writer writer = newWriter(path, charset, oldIgnore)) {
-            write(writer, data);
-        }
-    }
-
-    /**
-     * Writes all specified data to the writer.
-     *
-     * @param writer where the data should be written to.
-     * @param data   lines/columns to be written.
-     * @throws IOException          if a write error occurs
-     * @throws NullPointerException if writer or data is null
-     */
-    public void write(final Writer writer, final Collection<String[]> data) throws IOException {
-        Objects.requireNonNull(data, "data must not be null");
-        final CsvAppender appender = append(writer);
+    public void write(File file, Charset charset, Collection<String[]> data, boolean append) throws IOException {
+        final CsvAppender appender = append(file, charset, append);
         for (final String[] values : data) {
             appender.appendLine(values);
         }
@@ -150,76 +105,13 @@ public final class CsvWriter {
      * @throws IOException          if a write error occurs
      * @throws NullPointerException if file or charset is null
      */
-    public CsvAppender append(final File file, final Charset charset) throws IOException {
-        return append(file, charset, true);
-    }
-
-    public CsvAppender append(
-            final File file,
-            final Charset charset,
-            final boolean oldIgnore
-    ) throws IOException {
-        return append(
-                Objects.requireNonNull(file, "file must not be null").toPath(),
-                Objects.requireNonNull(charset, "charset must not be null"),
-                oldIgnore
-        );
-    }
-
-    /**
-     * Constructs a {@link CsvAppender} for the specified Path.
-     *
-     * @param path    the Path (file) to write data to.
-     * @param charset the character set to be used for writing data to the file.
-     * @return a new CsvAppender instance
-     * @throws IOException          if a write error occurs
-     * @throws NullPointerException if path or charset is null
-     */
-    public CsvAppender append(final Path path, final Charset charset) throws IOException {
-        return append(path, charset, true);
-    }
-
-    public CsvAppender append(
-            final Path path,
-            final Charset charset,
-            final boolean oldIgnore
-    ) throws IOException {
-        return append(newWriter(
-                Objects.requireNonNull(path, "path must not be null"),
-                Objects.requireNonNull(charset, "charset must not be null"),
-                oldIgnore
-        ));
-    }
-
-    /**
-     * Constructs a {@link CsvAppender} for the specified Writer.
-     * <p>
-     * This library uses built-in buffering, so you do not need to pass in a buffered Writer
-     * implementation such as {@link java.io.BufferedWriter}.
-     * Performance may be even likely better if you do not.
-     *
-     * @param writer the Writer to use for writing CSV data.
-     * @return a new CsvAppender instance
-     * @throws NullPointerException if writer is null
-     */
-    public CsvAppender append(final Writer writer) {
+    public CsvAppender append(File file, Charset charset, boolean append) throws IOException {
+        Writer writer = newWriter(file, charset, append);
         return new CsvAppender(Objects.requireNonNull(writer, "writer must not be null"),
                 fieldSeparator, textDelimiter, alwaysDelimitText, lineDelimiter);
     }
 
-    private static Writer newWriter(
-            final Path path,
-            final Charset charset,
-            final boolean oldIgnore
-    ) throws IOException {
-        final StandardOpenOption[] options = {
-                StandardOpenOption.CREATE,
-                oldIgnore ? StandardOpenOption.TRUNCATE_EXISTING
-                        : StandardOpenOption.APPEND,
-
-        };
-        return new OutputStreamWriter(
-                Files.newOutputStream(path, options),
-                charset);
+    private static Writer newWriter(File file, Charset charset, boolean append) throws IOException {
+        return new OutputStreamWriter(new FileOutputStream(file, append), charset);
     }
 }

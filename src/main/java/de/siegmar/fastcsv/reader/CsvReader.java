@@ -17,16 +17,13 @@
 package de.siegmar.fastcsv.reader;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * This is the main class for reading CSV data.
@@ -99,37 +96,20 @@ public final class CsvReader {
     /**
      * Reads an entire file and returns a CsvContainer containing the data.
      *
-     * @param file the file to read data from.
+     * @param file    the file to read data from.
      * @param charset the character set to use - must not be {@code null}.
      * @return the entire file's data - never {@code null}.
      * @throws IOException if an I/O error occurs.
      */
     public CsvContainer read(final File file, final Charset charset) throws IOException {
-        return read(
-            Objects.requireNonNull(file.toPath(), "file must not be null"),
-            Objects.requireNonNull(charset, "charset must not be null")
-        );
-    }
-
-    /**
-     * Reads an entire file and returns a CsvContainer containing the data.
-     *
-     * @param path the file to read data from.
-     * @param charset the character set to use - must not be {@code null}.
-     * @return the entire file's data - never {@code null}.
-     * @throws IOException if an I/O error occurs.
-     */
-    public CsvContainer read(final Path path, final Charset charset) throws IOException {
-        Objects.requireNonNull(path, "path must not be null");
-        Objects.requireNonNull(charset, "charset must not be null");
-        try (final Reader reader = newPathReader(path, charset)) {
+        try (final Reader reader = newPathReader(file, charset)) {
             return read(reader);
         }
     }
 
     /**
      * Reads from the provided reader until the end and returns a CsvContainer containing the data.
-     *
+     * <p>
      * This library uses built-in buffering, so you do not need to pass in a buffered Reader
      * implementation such as {@link java.io.BufferedReader}.
      * Performance may be even likely better if you do not.
@@ -139,8 +119,7 @@ public final class CsvReader {
      * @throws IOException if an I/O error occurs.
      */
     public CsvContainer read(final Reader reader) throws IOException {
-        final CsvParser csvParser =
-            parse(Objects.requireNonNull(reader, "reader must not be null"));
+        final CsvParser csvParser = parse(reader);
 
         final List<CsvRow> rows = new ArrayList<>();
         CsvRow csvRow;
@@ -159,52 +138,28 @@ public final class CsvReader {
     /**
      * Constructs a new {@link CsvParser} for the specified arguments.
      *
-     * @param path the file to read data from.
-     * @param charset the character set to use - must not be {@code null}.
-     * @return a new CsvParser - never {@code null}.
-     * @throws IOException if an I/O error occurs.
-     */
-    public CsvParser parse(final Path path, final Charset charset) throws IOException {
-        return parse(newPathReader(
-            Objects.requireNonNull(path, "path must not be null"),
-            Objects.requireNonNull(charset, "charset must not be null")
-        ));
-    }
-
-    /**
-     * Constructs a new {@link CsvParser} for the specified arguments.
-     *
-     * @param file the file to read data from.
+     * @param file    the file to read data from.
      * @param charset the character set to use - must not be {@code null}.
      * @return a new CsvParser - never {@code null}.
      * @throws IOException if an I/O error occurs.
      */
     public CsvParser parse(final File file, final Charset charset) throws IOException {
-        return parse(
-            Objects.requireNonNull(file, "file must not be null").toPath(),
-            Objects.requireNonNull(charset, "charset must not be null")
+        return parse(newPathReader(file, charset));
+    }
+
+    public CsvParser parse(Reader reader) {
+        return new CsvParser(
+                reader,
+                fieldSeparator,
+                textDelimiter,
+                containsHeader,
+                skipEmptyRows,
+                errorOnDifferentFieldCount
         );
     }
 
-    /**
-     * Constructs a new {@link CsvParser} for the specified arguments.
-     *
-     * This library uses built-in buffering, so you do not need to pass in a buffered Reader
-     * implementation such as {@link java.io.BufferedReader}.
-     * Performance may be even likely better if you do not.
-     *
-     * @param reader the data source to read from.
-     * @return a new CsvParser - never {@code null}.
-     * @throws IOException if an I/O error occurs.
-     */
-    public CsvParser parse(final Reader reader) throws IOException {
-        return new CsvParser(Objects.requireNonNull(reader, "reader must not be null"),
-            fieldSeparator, textDelimiter, containsHeader, skipEmptyRows,
-            errorOnDifferentFieldCount);
-    }
-
-    private static Reader newPathReader(final Path path, final Charset charset) throws IOException {
-        return new InputStreamReader(Files.newInputStream(path, StandardOpenOption.READ), charset);
+    private static Reader newPathReader(File file, final Charset charset) throws IOException {
+        return new InputStreamReader(new FileInputStream(file), charset);
     }
 
 }
